@@ -32,6 +32,9 @@ jobs:
           name: test-report
           path: reports/report.html
 
+      - name: Install jq
+        run: sudo apt-get install jq   
+
       - name: Send report to Slack
         if: always()
         env:
@@ -39,8 +42,22 @@ jobs:
           SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
         run: |
           if [ -f reports/report.html ]; then
-            # API Nueva de Slack para subir archivos
-            curl -F file=@reports/report.html -F channels="$SLACK_CHANNEL" -F title="Reporte de Tests" -H "Authorization: Bearer $SLACK_TOKEN" https://slack.com/api/files.upload
+            # 1. Obtener una URL de subida externa
+            UPLOAD_URL=$(curl -X POST -H "Authorization: Bearer $SLACK_TOKEN" \
+              -F "filename=report.html" \
+              -F "length=$(stat -c%s reports/report.html)" \
+              https://slack.com/api/files.getUploadURLExternal | jq -r '.upload_url')
+
+            # 2. Subir el archivo a esa URL
+            curl -F file=@reports/report.html "$UPLOAD_URL"
+
+            # 3. Finalizar la subida y compartir en el canal
+            FILE_ID=$(curl -X POST -H "Authorization: Bearer $SLACK_TOKEN" \
+              -F "file=$UPLOAD_URL" \
+              -F "channels=$SLACK_CHANNEL" \
+              https://slack.com/api/files.completeUploadExternal | jq -r '.files[0].id')
+            
+            echo "Archivo subido con ID: $FILE_ID"
           else
             echo "No report found"
           fi
