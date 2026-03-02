@@ -34,9 +34,13 @@ jobs:
 
       - name: Send report to Slack
         if: always()
-        uses: adrey/slack-file-upload-action@master
-        with:
-          token: ${{ secrets.SLACK_TOKEN }}
-          path: reports/report.html
-          channel: ${{ secrets.SLACK_CHANNEL }}
-          title: "Reporte de Tests"
+        env:
+          SLACK_TOKEN: ${{ secrets.SLACK_TOKEN }}
+          SLACK_CHANNEL: ${{ secrets.SLACK_CHANNEL }}
+        run: |
+          if [ -f reports/report.html ]; then
+            # API Nueva de Slack para subir archivos
+            curl -F file=@reports/report.html -F channels="$SLACK_CHANNEL" -F title="Reporte de Tests" -H "Authorization: Bearer $SLACK_TOKEN" https://slack.com/api/files.upload
+          else
+            echo "No report found"
+          fi
