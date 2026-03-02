@@ -24,7 +24,7 @@ jobs:
       - name: Run tests
         run: |
           mkdir -p reports
-          pytest || true
+          pytest --html=reports/report.html --self-contained-html || true
 
       - name: Upload report artifact
         uses: actions/upload-artifact@v4

@@ -4,3 +4,5 @@ venv/
 .venv/
 reports/
 *.pyc
+venv/
+.venv/
